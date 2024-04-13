@@ -1,14 +1,45 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+use std::array;
+use std::rc::Rc;
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+	use crate::{HamtArray, HamtKey};
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+	struct Key(u32);
+
+	impl HamtKey for Key {
+		fn key_byte(&self, offset: usize) -> u8 {
+			const SHIFT: [u32; 7] = [30, 25, 20, 15, 10, 5, 0];
+			(self.0 >> SHIFT[offset % 7]) as u8
+		}
+	}
+
+	#[test]
+	fn it_works() {
+		let hamt = HamtArray::<Key, u8>::new();
+		assert_eq!(0, hamt.len());
+	}
+}
+
+pub trait HamtKey {
+	fn key_byte(&self, offset: usize) -> u8;
+}
+
+#[derive(Debug, Clone)]
+pub enum HamtArray<K: HamtKey, V> {
+	Mem([Option<HamtArrayElement<K, V>>; 32]),
+}
+
+impl<K: HamtKey, V> HamtArray<K, V> {
+	pub fn new() -> Self {
+		HamtArray::Mem(array::from_fn(|_| None))
+	}
+
+	pub fn len(&self) -> usize { 0 }
+}
+
+#[derive(Debug, Clone)]
+pub enum HamtArrayElement<K: HamtKey, V> {
+	KeyValue { key: K, value: V },
+	SubHamt { sub_hamt: Rc<HamtArray<K, V>> },
 }
