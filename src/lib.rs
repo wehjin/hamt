@@ -15,9 +15,11 @@ mod tests {
 	}
 
 	#[test]
-	fn it_works() {
+	fn insert_value_finds_value() {
+		let key = Key(0);
 		let hamt = HamtArray::<Key, u8>::new();
-		assert_eq!(0, hamt.len());
+		let hamt = hamt.insert(&key, 0);
+		assert_eq!(Some(&0), hamt.find(&key));
 	}
 }
 
