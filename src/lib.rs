@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 #[cfg(test)]
 mod tests {
-	use crate::{HamtArray, HamtKey};
+	use crate::HamtKey;
 
 	struct Key(u32);
 
@@ -13,15 +13,10 @@ mod tests {
 			(self.0 >> SHIFT[offset % 7]) as u8
 		}
 	}
-
-	#[test]
-	fn insert_value_finds_value() {
-		let key = Key(0);
-		let hamt = HamtArray::<Key, u8>::new();
-		let hamt = hamt.insert(&key, 0);
-		assert_eq!(Some(&0), hamt.find(&key));
-	}
 }
+
+mod store;
+pub mod array_map;
 
 pub trait HamtKey {
 	fn key_byte(&self, offset: usize) -> u8;
