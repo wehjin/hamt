@@ -20,7 +20,7 @@ pub struct Trie<K: Clone, V: Clone> {
 	pub elements: ItemRef<ElementList<K, V>>,
 }
 
-impl<K: HamtKey + Clone + PartialEq, V: Clone> Trie<K, V> {
+impl<K: HamtKey, V: Clone> Trie<K, V> {
 	pub fn find(&self, search_key: &K) -> Option<&V> {
 		let mut depth = 0;
 		let mut active_trie = self;
@@ -44,21 +44,34 @@ impl<K: HamtKey + Clone + PartialEq, V: Clone> Trie<K, V> {
 	}
 }
 
-impl<K: HamtKey + Clone, V: Clone> Trie<K, V> {
-	pub fn insert_value(&self, key: K, value: V, store: &mut ItemStore<ElementList<K, V>>) -> Self {
+impl<K: HamtKey, V: Clone> Trie<K, V> {
+	pub fn insert_value(&self, insert_key: K, value: V, store: &mut ItemStore<ElementList<K, V>>) -> Self {
 		let depth = 0;
 		let trie = self;
 		let back_trie: Trie<K, V>;
 		loop {
-			let key_byte = key.key_byte(depth);
+			let key_byte = insert_key.key_byte(depth);
 			match self.find_element(key_byte) {
 				None => {
-					let element = Element::KeyValue(key.clone(), value.clone());
+					let element = Element::KeyValue(insert_key.clone(), value.clone());
 					back_trie = trie.insert_or_replace_element(key_byte, element, store);
 					break;
 				}
-				Some(_) => {
-					unimplemented!("existing element")
+				Some(element) => {
+					match element {
+						Element::KeyValue(key, _) => {
+							if key == &insert_key {
+								let replacement = Element::KeyValue(insert_key.clone(), value);
+								back_trie = trie.insert_or_replace_element(key_byte, replacement, store);
+								break;
+							} else {
+								todo!("different KeyValue")
+							}
+						}
+						Element::SubTrie(_) => {
+							todo!("existing SubTrie")
+						}
+					}
 				}
 			}
 		}
@@ -69,13 +82,14 @@ impl<K: HamtKey + Clone, V: Clone> Trie<K, V> {
 		match self.map.to_viewing_index(key_byte) {
 			None => {
 				let insertion_index = self.map.to_insertion_index(key_byte);
-				let element_list = self.elements.as_ref().insert(insertion_index, element);
-				let elements = store.push(element_list);
+				let elements = store.push(self.elements.as_ref().insert(insertion_index, element));
 				let map = self.map.include_key(key_byte);
 				Self { map, elements }
 			}
-			Some(_) => {
-				todo!();
+			Some(index) => {
+				let elements = store.push(self.elements.as_ref().replace(index, element));
+				let map = self.map.clone();
+				Self { map, elements }
 			}
 		}
 	}
@@ -119,6 +133,13 @@ impl<K: Clone, V: Clone> ElementList<K, V> {
 
 	pub fn insert(&self, index: usize, element: Element<K, V>) -> Self {
 		let mut new_elements = self.0.clone();
+		new_elements.insert(index, element);
+		Self(new_elements)
+	}
+
+	pub fn replace(&self, index: usize, element: Element<K, V>) -> Self {
+		let mut new_elements = self.0.clone();
+		new_elements.remove(index);
 		new_elements.insert(index, element);
 		Self(new_elements)
 	}

@@ -22,12 +22,22 @@ mod tests {
 	}
 
 	#[test]
-	fn insert_value_find_value() {
+	fn insert_same_key_finds_last_value() {
 		let mut store = KvStore::open();
-		let key = TestKey(1);
-		let trie = store.insert_value(key, 1);
+		let _ = store.insert_value(TestKey(1), 1);
+		let trie = store.insert_value(TestKey(1), 2);
 		assert_eq!(1, trie.size());
-		assert_eq!(Some(&1), trie.find(&key));
+		assert_eq!(Some(&2), trie.find(&TestKey(1)));
+		assert_eq!(None, trie.find(&TestKey(0)));
+	}
+
+	#[test]
+	fn insert_value_finds_value() {
+		let mut store = KvStore::open();
+		let trie = store.insert_value(TestKey(1), 1);
+		assert_eq!(1, trie.size());
+		assert_eq!(Some(&1), trie.find(&TestKey(1)));
+		assert_eq!(None, trie.find(&TestKey(0)));
 	}
 }
 
