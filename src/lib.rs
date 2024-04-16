@@ -16,7 +16,7 @@ mod tests {
 
 pub mod array_map;
 pub mod datom;
-pub mod store;
+pub mod item_store;
 pub mod traits;
 
 
