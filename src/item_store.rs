@@ -1,4 +1,3 @@
-use std::borrow::Borrow;
 use std::ops::{Deref, Index};
 use std::rc::Rc;
 
@@ -11,7 +10,7 @@ mod tests {
 		let mut store = ItemStore::new();
 		let item = 42;
 		let item_ref = store.push(item);
-		assert_eq!(&item, item_ref.borrow());
+		assert_eq!(&item, item_ref.as_ref());
 	}
 }
 
@@ -78,8 +77,8 @@ pub struct ItemRef<Item> {
 	pos: ItemPos,
 }
 
-impl<Item> Borrow<Item> for ItemRef<Item> {
-	fn borrow(&self) -> &Item {
+impl<Item> AsRef<Item> for ItemRef<Item> {
+	fn as_ref(&self) -> &Item {
 		&self.segment[self.pos.segment_index()]
 	}
 }
