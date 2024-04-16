@@ -1,8 +1,8 @@
-use crate::traits::HamtKey;
+use crate::array_map::ElementMap;
 
 #[cfg(test)]
 mod tests {
-	use crate::HamtKey;
+	use crate::traits::HamtKey;
 
 	struct Key(u32);
 
@@ -18,3 +18,19 @@ pub mod array_map;
 pub mod datom;
 pub mod store;
 pub mod traits;
+
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Trie<K, V> {
+	map: ElementMap,
+	elements: ElementList<K, V>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct ElementList<K, V>(pub Vec<Element<K, V>>);
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum Element<K, V> {
+	KeyValue(K, V),
+	SubTrie(Trie<K, V>),
+}

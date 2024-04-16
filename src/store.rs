@@ -1,50 +1,52 @@
+use std::borrow::Borrow;
 use std::ops::{Deref, Index};
 use std::rc::Rc;
 
-use crate::array_map::ElementMap;
-
 #[cfg(test)]
 mod tests {
-	use crate::datom::{Effect, EntityId, TxEvent, Value};
-
 	use super::*;
 
 	#[test]
 	fn basic() {
-		let mut store = SegmentStore::new();
-		let item = Item::KeyValue(Value::String("hey".into()), TxEvent(EntityId(1), Effect::Add));
-		let item_ref = store.push(item.clone());
-		assert_eq!(item, *item_ref);
+		let mut store = SegmentedItemStore::new();
+		let item = 42;
+		let item_ref = store.push(item);
+		assert_eq!(&item, item_ref.borrow());
 	}
 }
 
-pub struct SegmentStore<TrieKey, TrieValue> {
-	mem_segment: Rc<Segment<TrieKey, TrieValue>>,
+pub struct SegmentedItemStore<T> {
+	mem_segment: Rc<Segment<T>>,
 }
 
-impl<TrieKey, TrieValue> SegmentStore<TrieKey, TrieValue> {
+impl<Item> SegmentedItemStore<Item> {
 	pub fn new() -> Self {
 		Self { mem_segment: Rc::new(Segment::new()) }
 	}
 
-	pub fn push(&mut self, segment_item: Item<TrieKey, TrieValue>) -> ItemRef<TrieKey, TrieValue> {
-		let (segment, item_index) = self.mem_segment.with_item(segment_item);
+	pub fn push(&mut self, item: Item) -> SegmentItemRef<Item> {
+		let (segment, offset) = self.mem_segment.clone_add_item(item);
 		self.mem_segment = Rc::new(segment);
-		ItemRef { item_id: ItemId::Mem(item_index), segment: self.mem_segment.clone() }
+		SegmentItemRef { pos: SegmentItemPos::Mem(offset), segment: self.mem_segment.clone() }
 	}
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Segment<TrieKey, TrieValue> {
-	items: Vec<Rc<Item<TrieKey, TrieValue>>>,
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum SegmentId {
+	Mem,
 }
 
-impl<TrieKey, TrieValue> Segment<TrieKey, TrieValue> {
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Segment<Item> {
+	items: Vec<Rc<Item>>,
+}
+
+impl<Item> Segment<Item> {
 	pub fn new() -> Self {
 		Self { items: Vec::new() }
 	}
 
-	pub fn with_item(&self, item: Item<TrieKey, TrieValue>) -> (Segment<TrieKey, TrieValue>, usize) {
+	fn clone_add_item(&self, item: Item) -> (Segment<Item>, usize) {
 		let mut items = self.items.clone();
 		let item_index = items.len();
 		items.push(item.into());
@@ -52,49 +54,32 @@ impl<TrieKey, TrieValue> Segment<TrieKey, TrieValue> {
 	}
 }
 
-impl<TrieKey, TrieValue> Index<usize> for Segment<TrieKey, TrieValue> {
-	type Output = Item<TrieKey, TrieValue>;
+impl<Item> Index<usize> for Segment<Item> {
+	type Output = Item;
 	fn index(&self, index: usize) -> &Self::Output { self.items[index].deref() }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum ItemId {
+pub enum SegmentItemPos {
 	Mem(usize)
 }
 
-impl ItemId {
+impl SegmentItemPos {
 	pub fn segment_index(&self) -> usize {
 		match self {
-			ItemId::Mem(index) => *index
+			SegmentItemPos::Mem(index) => *index
 		}
 	}
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct ItemRef<TrieKey, TrieValue> {
-	item_id: ItemId,
-	segment: Rc<Segment<TrieKey, TrieValue>>,
+pub struct SegmentItemRef<Item> {
+	pub segment: Rc<Segment<Item>>,
+	pub pos: SegmentItemPos,
 }
 
-impl<TrieKey, TrieValue> Deref for ItemRef<TrieKey, TrieValue> {
-	type Target = Item<TrieKey, TrieValue>;
-
-	fn deref(&self) -> &Self::Target {
-		&self.segment[self.item_id.segment_index()]
+impl<Item> Borrow<Item> for SegmentItemRef<Item> {
+	fn borrow(&self) -> &Item {
+		&self.segment[self.pos.segment_index()]
 	}
 }
-
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub enum Item<TrieKey, TrieValue> {
-	KeyValue(TrieKey, TrieValue),
-	Node(ArrayNode<TrieKey, TrieValue>),
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct ArrayNode<TrieKey, TrieValue> {
-	map: ElementMap,
-	elements: Vec<ItemRef<TrieKey, TrieValue>>,
-}
-
-
