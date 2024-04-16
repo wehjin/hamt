@@ -1,7 +1,7 @@
 use std::ops::{Deref, Index};
 use std::rc::Rc;
 
-use crate::array_map::ArrayMap;
+use crate::array_map::ElementMap;
 
 #[cfg(test)]
 mod tests {
@@ -93,7 +93,7 @@ pub enum Item<TrieKey, TrieValue> {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct ArrayNode<TrieKey, TrieValue> {
-	map: ArrayMap,
+	map: ElementMap,
 	elements: Vec<ItemRef<TrieKey, TrieValue>>,
 }
 

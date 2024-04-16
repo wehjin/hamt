@@ -1,5 +1,4 @@
-use std::array;
-use std::rc::Rc;
+use crate::traits::HamtKey;
 
 #[cfg(test)]
 mod tests {
@@ -15,29 +14,7 @@ mod tests {
 	}
 }
 
-mod store;
 pub mod array_map;
 pub mod datom;
-
-pub trait HamtKey {
-	fn key_byte(&self, offset: usize) -> u8;
-}
-
-#[derive(Debug, Clone)]
-pub enum HamtArray<K: HamtKey, V> {
-	Mem([Option<HamtArrayElement<K, V>>; 32]),
-}
-
-impl<K: HamtKey, V> HamtArray<K, V> {
-	pub fn new() -> Self {
-		HamtArray::Mem(array::from_fn(|_| None))
-	}
-
-	pub fn len(&self) -> usize { 0 }
-}
-
-#[derive(Debug, Clone)]
-pub enum HamtArrayElement<K: HamtKey, V> {
-	KeyValue { key: K, value: V },
-	SubHamt { sub_hamt: Rc<HamtArray<K, V>> },
-}
+pub mod store;
+pub mod traits;
