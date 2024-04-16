@@ -17,6 +17,7 @@ mod tests {
 
 mod store;
 pub mod array_map;
+pub mod datom;
 
 pub trait HamtKey {
 	fn key_byte(&self, offset: usize) -> u8;

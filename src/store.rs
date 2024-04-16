@@ -5,6 +5,8 @@ use crate::array_map::ArrayMap;
 
 #[cfg(test)]
 mod tests {
+	use crate::datom::{Effect, EntityId, TxEvent, Value};
+
 	use super::*;
 
 	#[test]
@@ -86,27 +88,13 @@ impl<TrieKey, TrieValue> Deref for ItemRef<TrieKey, TrieValue> {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Item<TrieKey, TrieValue> {
 	KeyValue(TrieKey, TrieValue),
-	Node(TrieNode<TrieKey, TrieValue>),
+	Node(ArrayNode<TrieKey, TrieValue>),
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct TrieNode<TrieKey, TrieValue> {
+pub struct ArrayNode<TrieKey, TrieValue> {
 	map: ArrayMap,
 	elements: Vec<ItemRef<TrieKey, TrieValue>>,
 }
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub enum Value {
-	String(String)
-}
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct EntityId(u32);
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum Effect { Add, Retract }
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct TxEvent(EntityId, Effect);
 
 
