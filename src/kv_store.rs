@@ -7,7 +7,7 @@ use crate::traits::HamtKey;
 mod tests {
 	use super::*;
 
-	#[derive(Clone)]
+	#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 	struct TestKey(u8);
 
 	impl HamtKey for TestKey {
@@ -22,10 +22,12 @@ mod tests {
 	}
 
 	#[test]
-	fn one_value_find_value() {
+	fn insert_value_find_value() {
 		let mut store = KvStore::open();
-		let trie = store.insert_value(TestKey(1), 1);
+		let key = TestKey(1);
+		let trie = store.insert_value(key, 1);
 		assert_eq!(1, trie.size());
+		assert_eq!(Some(&1), trie.find(&key));
 	}
 }
 

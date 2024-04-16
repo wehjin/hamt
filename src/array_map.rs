@@ -32,11 +32,12 @@ impl ElementMap {
 		ElementMap(key_flag(key))
 	}
 	pub fn include_key(&self, key: u8) -> Self {
-		let new_flags = self.0 & key_flag(key);
+		let new_flags = self.0 | key_flag(key);
 		Self(new_flags)
 	}
 	pub fn has_key(&self, key: u8) -> bool {
-		let masked = self.0 & key_flag(key);
+		let key_flag = key_flag(key);
+		let masked = self.0 & key_flag;
 		masked != 0
 	}
 	pub fn to_viewing_index(&self, key: u8) -> Option<usize> {

@@ -20,29 +20,27 @@ pub struct Trie<K: Clone, V: Clone> {
 	pub elements: ItemRef<ElementList<K, V>>,
 }
 
-impl<K: Clone, V: Clone> Trie<K, V> {
-	pub fn size(&self) -> usize {
-		let mut count = 0;
-		let mut tries = vec![self];
-		while let Some(trie) = tries.pop() {
-			for element in trie.elements.as_ref().elements() {
-				match element {
-					Element::KeyValue(_, _) => {
-						count += 1;
-					}
-					Element::SubTrie(_) => {
-						todo!()
-					}
+impl<K: HamtKey + Clone + PartialEq, V: Clone> Trie<K, V> {
+	pub fn find(&self, search_key: &K) -> Option<&V> {
+		let mut depth = 0;
+		let mut active_trie = self;
+		loop {
+			let key_byte = search_key.key_byte(depth);
+			match active_trie.find_element(key_byte) {
+				None => {
+					return None;
 				}
+				Some(element) => match element {
+					Element::KeyValue(key, value) => {
+						return (key == search_key).then_some(value);
+					}
+					Element::SubTrie(trie) => {
+						active_trie = trie;
+						depth += 1;
+					}
+				},
 			}
 		}
-		count
-	}
-
-	pub fn find_element(&self, key_byte: u8) -> Option<&Element<K, V>> {
-		self.map
-			.to_viewing_index(key_byte)
-			.map(|index| &self.elements.as_ref()[index])
 	}
 }
 
@@ -71,7 +69,8 @@ impl<K: HamtKey + Clone, V: Clone> Trie<K, V> {
 		match self.map.to_viewing_index(key_byte) {
 			None => {
 				let insertion_index = self.map.to_insertion_index(key_byte);
-				let elements = store.push(self.elements.as_ref().insert(insertion_index, element));
+				let element_list = self.elements.as_ref().insert(insertion_index, element);
+				let elements = store.push(element_list);
 				let map = self.map.include_key(key_byte);
 				Self { map, elements }
 			}
@@ -79,6 +78,34 @@ impl<K: HamtKey + Clone, V: Clone> Trie<K, V> {
 				todo!();
 			}
 		}
+	}
+}
+
+impl<K: Clone, V: Clone> Trie<K, V> {
+	pub fn find_element(&self, key_byte: u8) -> Option<&Element<K, V>> {
+		let viewing_index = self.map.to_viewing_index(key_byte);
+		match viewing_index {
+			None => None,
+			Some(index) => Some(&self.elements.as_ref()[index])
+		}
+	}
+
+	pub fn size(&self) -> usize {
+		let mut count = 0;
+		let mut tries = vec![self];
+		while let Some(trie) = tries.pop() {
+			for element in trie.elements.as_ref().elements() {
+				match element {
+					Element::KeyValue(_, _) => {
+						count += 1;
+					}
+					Element::SubTrie(_) => {
+						todo!()
+					}
+				}
+			}
+		}
+		count
 	}
 }
 
