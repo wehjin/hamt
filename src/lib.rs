@@ -46,7 +46,60 @@ impl<K: HamtKey, V: Clone> Trie<K, V> {
 			}
 		}
 	}
-	pub fn zip_values(start_depth: usize, (key1, value1): (&K, &V), (key2, value2): (K, V), store: &mut ItemStore<ElementList<K, V>>) -> Self {
+	pub fn insert_value(&self, insert_key: K, insert_value: V, store: &mut ItemStore<ElementList<K, V>>) -> Self {
+		let mut back_trie: Trie<K, V>;
+		let mut back_tasks = Vec::new();
+		{
+			let mut active_depth = 0;
+			let mut active_trie = self;
+			loop {
+				let key_byte = insert_key.key_byte(active_depth);
+				let viewing_index = active_trie.map.to_viewing_index(key_byte);
+				match viewing_index {
+					None => {
+						let element = Element::KeyValue(insert_key.clone(), insert_value.clone());
+						back_trie = active_trie.insert_or_replace_element(key_byte, element, store);
+						break;
+					}
+					Some(viewing_index) => {
+						match &active_trie.elements.as_ref()[viewing_index] {
+							Element::KeyValue(old_key, old_value) => {
+								if old_key == &insert_key {
+									let replacement = Element::KeyValue(insert_key.clone(), insert_value);
+									back_trie = active_trie.insert_or_replace_element(key_byte, replacement, store);
+									break;
+								} else {
+									let replacement = {
+										let zipped_trie = Trie::zip_values(
+											active_depth + 1,
+											(old_key, old_value),
+											(insert_key, insert_value),
+											store,
+										);
+										Element::SubTrie(zipped_trie)
+									};
+									back_trie = active_trie.insert_or_replace_element(key_byte, replacement, store);
+									break;
+								}
+							}
+							Element::SubTrie(sub_trie) => {
+								back_tasks.push((key_byte, active_trie));
+								active_trie = sub_trie;
+								active_depth += 1;
+							}
+						}
+					}
+				}
+			}
+		}
+		while let Some((key_byte, trie)) = back_tasks.pop() {
+			let element = Element::SubTrie(back_trie);
+			back_trie = trie.insert_or_replace_element(key_byte, element, store);
+		}
+		back_trie
+	}
+
+	fn zip_values(start_depth: usize, (key1, value1): (&K, &V), (key2, value2): (K, V), store: &mut ItemStore<ElementList<K, V>>) -> Self {
 		let mut depth = start_depth;
 		let mut back_trie: Self;
 		let mut back_tasks = Vec::new();
@@ -79,53 +132,6 @@ impl<K: HamtKey, V: Clone> Trie<K, V> {
 				store.push(element_list)
 			};
 			back_trie = Self { map, elements };
-		}
-		back_trie
-	}
-
-	pub fn insert_value(&self, insert_key: K, insert_value: V, store: &mut ItemStore<ElementList<K, V>>) -> Self {
-		let depth = 0;
-		let trie = self;
-		let back_trie: Trie<K, V>;
-		loop {
-			let key_byte = insert_key.key_byte(depth);
-			let viewing_index = self.map.to_viewing_index(key_byte);
-			match viewing_index {
-				None => {
-					let element = Element::KeyValue(insert_key.clone(), insert_value.clone());
-					back_trie = trie.insert_or_replace_element(key_byte, element, store);
-					break;
-				}
-				Some(viewing_index) => {
-					match &self.elements.as_ref()[viewing_index] {
-						Element::KeyValue(old_key, old_value) => {
-							if old_key == &insert_key {
-								let replacement = Element::KeyValue(insert_key.clone(), insert_value);
-								back_trie = trie.insert_or_replace_element(key_byte, replacement, store);
-								break;
-							} else {
-								let new_map = self.map.clone();
-								let new_elements = {
-									let zipped_trie = Trie::zip_values(
-										depth + 1,
-										(old_key, old_value),
-										(insert_key, insert_value),
-										store,
-									);
-									let element = Element::SubTrie(zipped_trie);
-									let element_list = self.elements.as_ref().replace(viewing_index, element);
-									store.push(element_list)
-								};
-								back_trie = Trie { map: new_map, elements: new_elements };
-								break;
-							}
-						}
-						Element::SubTrie(_) => {
-							todo!("existing SubTrie")
-						}
-					}
-				}
-			}
 		}
 		back_trie
 	}
