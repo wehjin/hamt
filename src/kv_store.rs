@@ -22,6 +22,28 @@ mod tests {
 	}
 
 	#[test]
+	fn insert_two_keys_on_same_path_finds_both_values() {
+		let mut store = KvStore::open();
+		let _ = store.insert_value(TestKey(0b000001), 1);
+		let trie = store.insert_value(TestKey(0b000010), 2);
+		assert_eq!(2, trie.size());
+		assert_eq!(Some(&1), trie.find(&TestKey(0b000001)));
+		assert_eq!(Some(&2), trie.find(&TestKey(0b000010)));
+		assert_eq!(None, trie.find(&TestKey(0)));
+	}
+
+	#[test]
+	fn insert_two_keys_on_different_paths_finds_both_values() {
+		let mut store = KvStore::open();
+		let _ = store.insert_value(TestKey(0b000001), 1);
+		let trie = store.insert_value(TestKey(0b100001), 33);
+		assert_eq!(2, trie.size());
+		assert_eq!(Some(&1), trie.find(&TestKey(0b000001)));
+		assert_eq!(Some(&33), trie.find(&TestKey(0b100001)));
+		assert_eq!(None, trie.find(&TestKey(0)));
+	}
+
+	#[test]
 	fn insert_same_key_finds_last_value() {
 		let mut store = KvStore::open();
 		let _ = store.insert_value(TestKey(1), 1);
