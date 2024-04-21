@@ -9,6 +9,8 @@ mod tests {}
 
 pub mod array_map;
 pub mod datom;
+pub mod item_stash;
+
 pub mod item_store;
 pub mod kv_store;
 pub mod traits;
