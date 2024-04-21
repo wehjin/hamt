@@ -2,17 +2,7 @@ use std::ops::{Deref, Index};
 use std::rc::Rc;
 
 #[cfg(test)]
-mod tests {
-	use super::*;
-
-	#[test]
-	fn basic() {
-		let mut store = ItemStore::new();
-		let item = 42;
-		let item_ref = store.push(item);
-		assert_eq!(&item, item_ref.as_ref());
-	}
-}
+mod tests;
 
 pub struct ItemStore<T> {
 	mem_segment: Rc<Segment<T>>,
