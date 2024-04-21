@@ -1,20 +1,5 @@
 use super::*;
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-struct TestKey(u16);
-
-impl HamtKey for TestKey {
-	fn key_byte(&self, offset: usize) -> u8 {
-		let shift_bits = match offset % 3 {
-			0 => 10,
-			1 => 5,
-			2 => 0,
-			_ => unreachable!("modulo 3")
-		};
-		((self.0 >> shift_bits) & 0b11111) as u8
-	}
-}
-
 #[test]
 fn insert_two_keys_with_same_prefix_and_depth_and_two_more_at_lower_depth_finds_all_four_values() {
 	let mut store = KvStore::open();
