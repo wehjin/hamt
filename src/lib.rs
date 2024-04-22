@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::ops::Index;
 
 use crate::array_map::ElementMap;
@@ -7,6 +8,7 @@ use crate::traits::HamtKey;
 #[cfg(test)]
 mod tests {}
 
+pub mod array_data;
 pub mod array_map;
 pub mod datom;
 pub mod item_stash;
@@ -17,12 +19,12 @@ pub mod traits;
 
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Trie<K: Clone, V: Clone> {
+pub struct Trie<K: HamtKey, V: Debug + Clone + PartialEq> {
 	pub map: ElementMap,
 	pub elements: ItemRef<ElementList<K, V>>,
 }
 
-impl<K: HamtKey, V: Clone> Trie<K, V> {
+impl<K: HamtKey, V: Debug + Clone + PartialEq> Trie<K, V> {
 	pub fn find(&self, search_key: &K) -> Option<&V> {
 		let mut depth = 0;
 		let mut active_trie = self;
@@ -155,7 +157,7 @@ impl<K: HamtKey, V: Clone> Trie<K, V> {
 	}
 }
 
-impl<K: Clone, V: Clone> Trie<K, V> {
+impl<K: HamtKey, V: Debug + Clone + PartialEq> Trie<K, V> {
 	pub fn find_element(&self, key_byte: u8) -> Option<&Element<K, V>> {
 		let viewing_index = self.map.to_viewing_index(key_byte);
 		match viewing_index {
@@ -184,13 +186,9 @@ impl<K: Clone, V: Clone> Trie<K, V> {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct ElementList<K: Clone, V: Clone>(pub Vec<Element<K, V>>);
+pub struct ElementList<K: HamtKey, V: Debug + Clone + PartialEq>(pub Vec<Element<K, V>>);
 
-impl<K: Clone, V: Clone> ElementList<K, V> {
-	pub fn empty() -> Self {
-		Self(vec![])
-	}
-
+impl<K: HamtKey, V: Debug + Clone + PartialEq> ElementList<K, V> {
 	pub fn insert(&self, index: usize, element: Element<K, V>) -> Self {
 		let mut new_elements = self.0.clone();
 		new_elements.insert(index, element);
@@ -205,9 +203,13 @@ impl<K: Clone, V: Clone> ElementList<K, V> {
 	}
 
 	pub fn elements(&self) -> &Vec<Element<K, V>> { &self.0 }
+
+	pub fn empty() -> Self {
+		Self(vec![])
+	}
 }
 
-impl<K: Clone, V: Clone> Index<usize> for ElementList<K, V> {
+impl<K: HamtKey, V: Debug + Clone + PartialEq> Index<usize> for ElementList<K, V> {
 	type Output = Element<K, V>;
 
 	fn index(&self, index: usize) -> &Self::Output {
@@ -216,7 +218,8 @@ impl<K: Clone, V: Clone> Index<usize> for ElementList<K, V> {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub enum Element<K: Clone, V: Clone> {
+pub enum Element<K: HamtKey, V: Debug + Clone + PartialEq> {
 	KeyValue(K, V),
 	SubTrie(Trie<K, V>),
 }
+

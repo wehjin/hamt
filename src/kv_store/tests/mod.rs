@@ -1,4 +1,30 @@
+use std::env;
+use std::path::PathBuf;
+
 use super::*;
+
+mod insertion;
+mod persistence;
+
+mod basic {
+	use crate::kv_store::KvStore;
+	use crate::kv_store::tests::{prepare_test_dir, TestKey};
+
+	#[test]
+	fn basic() {
+		let test_dir = prepare_test_dir("basic");
+		KvStore::<TestKey, u32>::create(&test_dir).expect("create kv-store");
+	}
+}
+
+fn prepare_test_dir(name: &str) -> PathBuf {
+	let test_dir = env::temp_dir().join("kv_store").join(name);
+	if test_dir.exists() {
+		fs::remove_dir(&test_dir).expect("remove test dir");
+	}
+	test_dir
+}
+
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 struct TestKey(u16);
@@ -14,6 +40,3 @@ impl HamtKey for TestKey {
 		((self.0 >> shift_bits) & 0b11111) as u8
 	}
 }
-
-mod insertion;
-mod persistence;
