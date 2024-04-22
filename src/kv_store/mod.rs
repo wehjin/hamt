@@ -3,6 +3,7 @@ use std::fmt::Debug;
 use std::path::Path;
 
 use crate::{ElementList, Trie};
+use crate::array_data::ElementData;
 use crate::array_map::ElementMap;
 use crate::item_store::ItemStore;
 use crate::traits::HamtKey;
@@ -16,19 +17,19 @@ pub struct KvStore<K: HamtKey, V: Debug + Clone + PartialEq> {
 }
 
 impl<K: HamtKey, V: Debug + Clone + PartialEq> KvStore<K, V> {
-	pub fn size(&self) -> usize {
-		return self.trie.size();
-	}
 	pub fn insert_value(&mut self, key: K, value: V) -> Trie<K, V> {
 		self.trie = self.trie.insert_value(key, value, &mut self.store);
 		self.trie.clone()
 	}
+	pub fn size(&self) -> usize {
+		return self.trie.size();
+	}
 
 	pub fn open() -> Self {
-		let mut store = ItemStore::new();
+		let store = ItemStore::new();
 		let trie = Trie {
 			map: ElementMap::empty(),
-			elements: store.push(ElementList::empty()),
+			elements: ElementData::Direct(ElementList::empty()),
 		};
 		Self { store, trie }
 	}

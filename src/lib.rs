@@ -1,8 +1,9 @@
 use std::fmt::Debug;
 use std::ops::Index;
 
+use crate::array_data::ElementData;
 use crate::array_map::ElementMap;
-use crate::item_store::{ItemRef, ItemStore};
+use crate::item_store::ItemStore;
 use crate::traits::HamtKey;
 
 #[cfg(test)]
@@ -21,7 +22,7 @@ pub mod traits;
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Trie<K: HamtKey, V: Debug + Clone + PartialEq> {
 	pub map: ElementMap,
-	pub elements: ItemRef<ElementList<K, V>>,
+	pub elements: ElementData<K, V>,
 }
 
 impl<K: HamtKey, V: Debug + Clone + PartialEq> Trie<K, V> {
@@ -35,8 +36,7 @@ impl<K: HamtKey, V: Debug + Clone + PartialEq> Trie<K, V> {
 					return None;
 				}
 				Some(viewing_index) => {
-					let element_list = active_trie.elements.as_ref();
-					let element = &element_list[viewing_index];
+					let element = &active_trie.elements[viewing_index];
 					match element {
 						Element::KeyValue(key, value) => {
 							return (key == search_key).then_some(value);
@@ -66,7 +66,7 @@ impl<K: HamtKey, V: Debug + Clone + PartialEq> Trie<K, V> {
 						break;
 					}
 					Some(viewing_index) => {
-						match &active_trie.elements.as_ref()[viewing_index] {
+						match &active_trie.elements[viewing_index] {
 							Element::KeyValue(old_key, old_value) => {
 								if old_key == &insert_key {
 									let replacement = Element::KeyValue(insert_key.clone(), insert_value);
@@ -119,7 +119,7 @@ impl<K: HamtKey, V: Debug + Clone + PartialEq> Trie<K, V> {
 					} else {
 						ElementList::empty().insert(0, key2_element).insert(1, key1_element)
 					};
-					store.push(element_list)
+					ElementData::Direct(element_list)
 				};
 				back_trie = Self { map, elements };
 				break;
@@ -133,7 +133,7 @@ impl<K: HamtKey, V: Debug + Clone + PartialEq> Trie<K, V> {
 			let elements = {
 				let key_element = Element::SubTrie(back_trie);
 				let element_list = ElementList::empty().insert(0, key_element);
-				store.push(element_list)
+				ElementData::Direct(element_list)
 			};
 			back_trie = Self { map, elements };
 		}
@@ -144,12 +144,14 @@ impl<K: HamtKey, V: Debug + Clone + PartialEq> Trie<K, V> {
 		match self.map.to_viewing_index(key_byte) {
 			None => {
 				let insertion_index = self.map.to_insertion_index(key_byte);
-				let elements = store.push(self.elements.as_ref().insert(insertion_index, element));
+				let modified_list = self.elements.as_ref().insert(insertion_index, element);
+				let elements = ElementData::Direct(modified_list);
 				let map = self.map.include_key(key_byte);
 				Self { map, elements }
 			}
 			Some(index) => {
-				let elements = store.push(self.elements.as_ref().replace(index, element));
+				let modified_list = self.elements.as_ref().replace(index, element);
+				let elements = ElementData::Direct(modified_list);
 				let map = self.map.clone();
 				Self { map, elements }
 			}
