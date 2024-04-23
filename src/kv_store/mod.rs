@@ -1,42 +1,53 @@
 use std::{fs, io};
 use std::fmt::Debug;
+use std::ops::Index;
 use std::path::Path;
 
-use crate::{ElementList, Trie};
-use crate::array_data::ElementData;
-use crate::array_map::ElementMap;
-use crate::item_store::ItemStore;
 use crate::traits::HamtKey;
+use crate::Trie;
 
 #[cfg(test)]
 mod tests;
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub struct KvForestIndex(pub usize);
+
 pub struct KvForest<K: HamtKey, V: Debug + Clone + PartialEq> {
-	store: ItemStore<ElementList<K, V>>,
-	trie: Trie<K, V>,
+	tries: Vec<Trie<K, V>>,
+}
+
+impl<K: HamtKey, V: Debug + Clone + PartialEq> Index<KvForestIndex> for KvForest<K, V> {
+	type Output = Trie<K, V>;
+
+	fn index(&self, index: KvForestIndex) -> &Self::Output {
+		&self.tries[index.0]
+	}
 }
 
 impl<K: HamtKey, V: Debug + Clone + PartialEq> KvForest<K, V> {
-	pub fn insert_value(&mut self, key: K, value: V) -> Trie<K, V> {
-		self.trie = self.trie.insert_value(key, value, &mut self.store);
-		self.trie.clone()
+	pub fn push_trie(&mut self, index: KvForestIndex, key: K, value: V) -> io::Result<()> {
+		*self.trie_mut(index) = self[index].insert_value(key, value);
+		Ok(())
 	}
-	pub fn size(&self) -> usize {
-		return self.trie.size();
-	}
+}
 
+impl<K: HamtKey, V: Debug + Clone + PartialEq> KvForest<K, V> {
+	fn trie_mut(&mut self, index: KvForestIndex) -> &mut Trie<K, V> {
+		&mut self.tries[index.0]
+	}
+	pub fn new_trie(&mut self) -> io::Result<KvForestIndex> {
+		let trie = Trie::new();
+		let index = KvForestIndex(self.tries.len());
+		self.tries.push(trie);
+		Ok(index)
+	}
 	pub fn open_or_create(path: impl AsRef<Path>) -> io::Result<Self> {
 		Self::create(&path)?;
 		Self::open(path)
 	}
 	pub fn open(_path: impl AsRef<Path>) -> io::Result<Self> {
-		let store = ItemStore::new();
-		let trie = Trie {
-			map: ElementMap::empty(),
-			elements: ElementData::Direct(ElementList::empty()),
-		};
-		let store = Self { store, trie };
-		Ok(store)
+		let forest = Self { tries: Vec::new() };
+		Ok(forest)
 	}
 
 	pub fn create(path: impl AsRef<Path>) -> io::Result<()> {

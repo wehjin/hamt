@@ -3,7 +3,6 @@ use std::ops::Index;
 
 use crate::array_data::ElementData;
 use crate::array_map::ElementMap;
-use crate::item_store::ItemStore;
 use crate::traits::HamtKey;
 
 #[cfg(test)]
@@ -50,7 +49,7 @@ impl<K: HamtKey, V: Debug + Clone + PartialEq> Trie<K, V> {
 			}
 		}
 	}
-	pub fn insert_value(&self, insert_key: K, insert_value: V, store: &mut ItemStore<ElementList<K, V>>) -> Self {
+	pub fn insert_value(&self, insert_key: K, insert_value: V) -> Self {
 		let mut back_trie: Trie<K, V>;
 		let mut back_tasks = Vec::new();
 		{
@@ -62,7 +61,7 @@ impl<K: HamtKey, V: Debug + Clone + PartialEq> Trie<K, V> {
 				match viewing_index {
 					None => {
 						let element = Element::KeyValue(insert_key.clone(), insert_value.clone());
-						back_trie = active_trie.insert_or_replace_element(key_byte, element, store);
+						back_trie = active_trie.insert_or_replace_element(key_byte, element);
 						break;
 					}
 					Some(viewing_index) => {
@@ -70,7 +69,7 @@ impl<K: HamtKey, V: Debug + Clone + PartialEq> Trie<K, V> {
 							Element::KeyValue(old_key, old_value) => {
 								if old_key == &insert_key {
 									let replacement = Element::KeyValue(insert_key.clone(), insert_value);
-									back_trie = active_trie.insert_or_replace_element(key_byte, replacement, store);
+									back_trie = active_trie.insert_or_replace_element(key_byte, replacement);
 									break;
 								} else {
 									let replacement = {
@@ -78,11 +77,10 @@ impl<K: HamtKey, V: Debug + Clone + PartialEq> Trie<K, V> {
 											active_depth + 1,
 											(old_key, old_value),
 											(insert_key, insert_value),
-											store,
 										);
 										Element::SubTrie(zipped_trie)
 									};
-									back_trie = active_trie.insert_or_replace_element(key_byte, replacement, store);
+									back_trie = active_trie.insert_or_replace_element(key_byte, replacement);
 									break;
 								}
 							}
@@ -98,12 +96,12 @@ impl<K: HamtKey, V: Debug + Clone + PartialEq> Trie<K, V> {
 		}
 		while let Some((key_byte, trie)) = back_tasks.pop() {
 			let element = Element::SubTrie(back_trie);
-			back_trie = trie.insert_or_replace_element(key_byte, element, store);
+			back_trie = trie.insert_or_replace_element(key_byte, element);
 		}
 		back_trie
 	}
 
-	fn zip_values(start_depth: usize, (key1, value1): (&K, &V), (key2, value2): (K, V), store: &mut ItemStore<ElementList<K, V>>) -> Self {
+	fn zip_values(start_depth: usize, (key1, value1): (&K, &V), (key2, value2): (K, V)) -> Self {
 		let mut depth = start_depth;
 		let mut back_trie: Self;
 		let mut back_tasks = Vec::new();
@@ -140,7 +138,7 @@ impl<K: HamtKey, V: Debug + Clone + PartialEq> Trie<K, V> {
 		back_trie
 	}
 
-	fn insert_or_replace_element(&self, key_byte: u8, element: Element<K, V>, store: &mut ItemStore<ElementList<K, V>>) -> Self {
+	fn insert_or_replace_element(&self, key_byte: u8, element: Element<K, V>) -> Self {
 		match self.map.to_viewing_index(key_byte) {
 			None => {
 				let insertion_index = self.map.to_insertion_index(key_byte);
@@ -184,6 +182,12 @@ impl<K: HamtKey, V: Debug + Clone + PartialEq> Trie<K, V> {
 			}
 		}
 		count
+	}
+
+	pub fn new() -> Self {
+		let map = ElementMap::empty();
+		let elements = ElementData::empty();
+		Self { map, elements }
 	}
 }
 
