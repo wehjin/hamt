@@ -11,12 +11,12 @@ use crate::traits::HamtKey;
 #[cfg(test)]
 mod tests;
 
-pub struct KvStore<K: HamtKey, V: Debug + Clone + PartialEq> {
+pub struct KvForest<K: HamtKey, V: Debug + Clone + PartialEq> {
 	store: ItemStore<ElementList<K, V>>,
 	trie: Trie<K, V>,
 }
 
-impl<K: HamtKey, V: Debug + Clone + PartialEq> KvStore<K, V> {
+impl<K: HamtKey, V: Debug + Clone + PartialEq> KvForest<K, V> {
 	pub fn insert_value(&mut self, key: K, value: V) -> Trie<K, V> {
 		self.trie = self.trie.insert_value(key, value, &mut self.store);
 		self.trie.clone()
