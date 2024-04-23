@@ -8,16 +8,17 @@ mod persistence;
 
 mod basic {
 	use crate::kv_store::KvStore;
-	use crate::kv_store::tests::{prepare_test_dir, TestKey};
+	use crate::kv_store::tests::{prepare_kv_store_test_dir, TestKey};
 
 	#[test]
 	fn basic() {
-		let test_dir = prepare_test_dir("basic");
+		let test_dir = prepare_kv_store_test_dir("basic");
 		KvStore::<TestKey, u32>::create(&test_dir).expect("create kv-store");
+		let store = KvStore::<TestKey, u32>::open(&test_dir).expect("open");
 	}
 }
 
-fn prepare_test_dir(name: &str) -> PathBuf {
+fn prepare_kv_store_test_dir(name: &str) -> PathBuf {
 	let test_dir = env::temp_dir().join("kv_store").join(name);
 	if test_dir.exists() {
 		fs::remove_dir(&test_dir).expect("remove test dir");

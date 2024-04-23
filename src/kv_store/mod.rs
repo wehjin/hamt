@@ -25,13 +25,18 @@ impl<K: HamtKey, V: Debug + Clone + PartialEq> KvStore<K, V> {
 		return self.trie.size();
 	}
 
-	pub fn open() -> Self {
+	pub fn open_or_create(path: impl AsRef<Path>) -> io::Result<Self> {
+		Self::create(&path)?;
+		Self::open(path)
+	}
+	pub fn open(_path: impl AsRef<Path>) -> io::Result<Self> {
 		let store = ItemStore::new();
 		let trie = Trie {
 			map: ElementMap::empty(),
 			elements: ElementData::Direct(ElementList::empty()),
 		};
-		Self { store, trie }
+		let store = Self { store, trie };
+		Ok(store)
 	}
 
 	pub fn create(path: impl AsRef<Path>) -> io::Result<()> {
