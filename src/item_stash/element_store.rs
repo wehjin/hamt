@@ -1,22 +1,19 @@
 use std::fs::{File, OpenOptions};
+use std::io;
 use std::os::unix::fs::{FileExt, OpenOptionsExt};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::item_stash::element::{ELEMENT_BYTES, ElementStoreIndex};
+use crate::item_stash::element_read::ElementRead;
 
 #[derive(Debug)]
 pub struct ElementStore {
+	store_path: PathBuf,
 	file: File,
 	file_length: u64,
 }
 
 impl ElementStore {
-	pub fn read(&self, position: ElementStoreIndex, index: usize) -> std::io::Result<[u8; 8]> {
-		let read_position = position.to_file_position(index);
-		let mut bytes = [0u8; ELEMENT_BYTES];
-		self.file.read_exact_at(&mut bytes, read_position)?;
-		Ok(bytes)
-	}
 	pub fn append(&mut self, elements: impl AsRef<[[u32; 2]]>) -> std::io::Result<ElementStoreIndex> {
 		let start_position = self.file_length;
 		let mut write_position = start_position;
@@ -40,18 +37,19 @@ impl ElementStore {
 	pub fn len(&self) -> usize {
 		self.file_length as usize / ELEMENT_BYTES
 	}
-	pub fn open(path: impl AsRef<Path>) -> std::io::Result<Self> {
-		let path = path.as_ref().to_path_buf();
-		let file = OpenOptions::new().read(true).append(true).open(&path)?;
+	pub fn to_element_read(&self) -> io::Result<ElementRead> { ElementRead::open(&self.store_path) }
+	pub fn open(store_path: impl AsRef<Path>) -> std::io::Result<Self> {
+		let store_path = store_path.as_ref();
+		let file = OpenOptions::new().read(true).append(true).open(store_path)?;
 		let file_length = file.metadata()?.len();
-		Ok(Self { file, file_length })
+		Ok(Self { file, file_length, store_path: store_path.to_path_buf() })
 	}
-	pub fn create(path: impl AsRef<Path>) -> std::io::Result<()> {
+	pub fn create(store_path: impl AsRef<Path>) -> std::io::Result<()> {
 		OpenOptions::new()
 			.write(true)
 			.create(true)
 			.mode(0o600)
-			.open(&path)?;
+			.open(&store_path)?;
 		Ok(())
 	}
 }

@@ -3,7 +3,8 @@ use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
 use crate::item_stash::element::ElementStoreIndex;
-use crate::item_stash::store::ElementStore;
+use crate::item_stash::element_read::ElementRead;
+use crate::item_stash::element_store::ElementStore;
 
 #[derive(Debug)]
 pub struct ItemStash {
@@ -11,13 +12,11 @@ pub struct ItemStash {
 }
 
 impl ItemStash {
-	pub fn read(&self, position: ElementStoreIndex, index: usize) -> std::io::Result<[u8; 8]> {
-		self.store.read(position, index)
-	}
 	pub fn append(&mut self, elements: impl AsRef<[[u32; 2]]>) -> std::io::Result<ElementStoreIndex> {
 		self.store.append(elements)
 	}
 	pub fn len(&self) -> usize { self.store.len() }
+	pub fn to_element_read(&self) -> std::io::Result<ElementRead> { self.store.to_element_read() }
 	pub fn open(path: impl AsRef<Path>) -> std::io::Result<Self> {
 		let path = path.as_ref().to_path_buf();
 		let store = ElementStore::open(store_path(&path))?;

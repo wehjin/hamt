@@ -22,11 +22,14 @@ mod tests {
 	}
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 #[must_use]
-pub struct ElementMap(u32);
+pub struct ElementMap(pub u32);
 
 impl ElementMap {
+	pub fn count_ones(&self) -> u32 {
+		self.0.count_ones()
+	}
 	pub fn empty() -> Self { ElementMap(0) }
 	pub fn just_key(key: u8) -> Self {
 		ElementMap(key_flag(key))

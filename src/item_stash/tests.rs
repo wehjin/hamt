@@ -9,14 +9,13 @@ fn basic() {
 	{
 		let mut stash = ItemStash::open(&test_dir).expect("open item-stash");
 		assert_eq!(0, stash.len());
-		let position = stash.append([
-			[1, 1],
-			[2, 2],
-		]).expect("append");
+		let index = stash.append([[1, 1], [2, 2], ]).expect("append");
 		assert_eq!(2, stash.len());
+
+		let read = stash.to_element_read().expect("read");
 		let bytes = [
-			stash.read(position, 0).expect("read 0"),
-			stash.read(position, 1).expect("read 1"),
+			read.read(index).expect(&format!("read 0 from {:?}", &test_dir)),
+			read.read(index + 1).expect("read 1"),
 		];
 		assert_eq!([[0, 0, 0, 1, 0, 0, 0, 1], [0, 0, 0, 2, 0, 0, 0, 2]], bytes);
 	}
@@ -24,9 +23,10 @@ fn basic() {
 		let stash = ItemStash::open(&test_dir).expect("reopen item-stash");
 		assert_eq!(2, stash.len());
 		let position = ElementStoreIndex(0);
+		let read = stash.to_element_read().expect("read");
 		let bytes = [
-			stash.read(position, 0).expect("read 0"),
-			stash.read(position, 1).expect("read 1"),
+			read.read(position).expect("read 0"),
+			read.read(position + 1).expect("read 1"),
 		];
 		assert_eq!([[0, 0, 0, 1, 0, 0, 0, 1], [0, 0, 0, 2, 0, 0, 0, 2]], bytes);
 	}
