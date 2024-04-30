@@ -10,10 +10,10 @@ pub struct Db {
 }
 
 impl Db {
-	pub fn create(db_dir: impl AsRef<Path>, attributes: impl AsRef<[Attribute]>) -> io::Result<()> {
+	pub fn create(db_dir: impl AsRef<Path>, _attributes: impl AsRef<[Attribute]>) -> io::Result<()> {
 		fs::create_dir(db_dir.as_ref())?;
 
-		const SPACE_ENTITY: u32 = 10;
+		const _SPACE_ENTITY: u32 = 10;
 		Ok(())
 	}
 	pub fn open(db_dir: impl AsRef<Path>) -> io::Result<Self> {
@@ -28,29 +28,18 @@ impl Db {
 
 #[cfg(test)]
 mod tests {
-	use std::{env, fs};
-	use std::path::PathBuf;
-
 	use crate::db::attribute::Attribute;
 	use crate::db::Db;
+	use crate::tests;
 
 	#[test]
 	fn basic() {
-		let db_dir = dbg!(ready_test_dir("hamt-db-basic").join("db"));
+		let db_dir = dbg!(tests::ready_test_dir("db-basic").join("db"));
 		Db::create(
 			&db_dir,
 			&[Attribute("lot", "size")],
 		).unwrap();
 		let db = Db::open(&db_dir).expect("Open succeeds");
 		assert_eq!(&db_dir, db.path());
-	}
-
-	fn ready_test_dir(name: &str) -> PathBuf {
-		let test_dir = env::temp_dir().join(name);
-		if test_dir.exists() {
-			fs::remove_dir_all(&test_dir).expect("remove test dir");
-		}
-		fs::create_dir_all(&test_dir).expect("create test dir");
-		test_dir
 	}
 }
