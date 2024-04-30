@@ -2,9 +2,9 @@ use std::fmt::Debug;
 use std::io;
 use std::ops::Index;
 
-use crate::{DirectElementList, Element, ElementList};
 use crate::item_stash::element::ElementStoreIndex;
 use crate::item_stash::element_read::SavedElementList;
+use crate::trie::{DirectElementList, Element, ElementList};
 
 #[derive(Debug, Clone, Hash)]
 pub enum ElementData {

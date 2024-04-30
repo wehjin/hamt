@@ -7,8 +7,8 @@ use std::os::unix::fs::FileExt;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
-use crate::{Element, ElementList, Trie, u32_from_bytes, u32_to_key};
 use crate::item_stash::element::{ELEMENT_BYTES, ElementStoreIndex};
+use crate::trie::{Element, ElementList, Trie, u32_from_bytes, u32_to_key};
 
 #[derive(Debug)]
 pub struct ElementRead {
