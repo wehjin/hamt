@@ -5,23 +5,18 @@ use std::io;
 use std::ops::Index;
 use std::rc::Rc;
 
-use crate::array_data::ElementData;
-use crate::array_map::ElementMap;
+use kv_store::array_map::ElementMap;
+
 use crate::item_stash::element::ElementStoreIndex;
 use crate::item_stash::element_read::{ElementRead, SavedElementList};
+use crate::kv_store::array_data::ElementData;
 
 #[cfg(test)]
 mod tests {}
 
-pub mod array_data;
-pub mod array_map;
 pub mod datom;
 pub mod item_stash;
-pub mod item_store;
 pub mod kv_store;
-pub mod traits;
-pub mod trie_stash;
-pub mod trie_read;
 
 #[derive(Debug, Clone, Hash)]
 #[must_use]

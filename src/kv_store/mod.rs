@@ -6,13 +6,15 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 use crate::{Element, Trie, u32_from_key, u32_from_stash_index};
-use crate::array_data::ElementData;
 use crate::item_stash::element::ElementStoreIndex;
 use crate::item_stash::element_read::{ElementRead, SavedElementList};
 use crate::item_stash::stash::ItemStash;
+use crate::kv_store::array_data::ElementData;
 
 #[cfg(test)]
 mod tests;
+pub mod array_map;
+pub mod array_data;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[must_use]
