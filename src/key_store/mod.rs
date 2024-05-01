@@ -1,4 +1,5 @@
 use std::io;
+use std::path::Path;
 
 use crate::trie::{key_field_from_store_index, key_field_to_store_index, u32_from_bytes, u32_is_stash_index, u32_key_byte};
 
@@ -76,6 +77,11 @@ pub trait ReadKey<K: Key> {
 }
 
 pub struct U32KeyStore;
+
+impl U32KeyStore {
+	pub fn create(_path: impl AsRef<Path>) -> io::Result<()> { Ok(()) }
+	pub fn open(_path: impl AsRef<Path>) -> io::Result<Self> { Ok(U32KeyStore) }
+}
 
 impl KeyStore<u32> for U32KeyStore {
 	fn write_key(&mut self, key: &u32) -> io::Result<KeyStoreIndex> {

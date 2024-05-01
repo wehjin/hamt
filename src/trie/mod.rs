@@ -72,8 +72,7 @@ impl Trie {
 			}
 		}
 	}
-	pub fn push(&self, insert_key: u32, insert_value: u32) -> Self {
-		let mut key_store = U32KeyStore;
+	pub fn push(&self, insert_key: u32, insert_value: u32, key_store: &mut U32KeyStore) -> Self {
 		let insert_key_index = key_store.write_key(&insert_key).expect("write key");
 		let read_key = key_store.to_read_key();
 

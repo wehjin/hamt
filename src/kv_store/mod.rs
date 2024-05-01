@@ -8,6 +8,7 @@ use std::rc::Rc;
 use crate::item_stash::element::ElementStoreIndex;
 use crate::item_stash::element_read::{ElementRead, SavedElementList};
 use crate::item_stash::stash::ItemStash;
+use crate::key_store::U32KeyStore;
 use crate::kv_store::array_data::ElementData;
 use crate::trie::{Element, Trie, u32_from_stash_index};
 
@@ -23,6 +24,7 @@ pub struct RootIndex(ElementStoreIndex);
 pub struct KvForest {
 	element_stash: ItemStash,
 	element_read: Rc<ElementRead>,
+	key_store: U32KeyStore,
 }
 
 impl KvForest {
@@ -31,12 +33,14 @@ impl KvForest {
 		fs::create_dir_all(forest_path)?;
 		ItemStash::create(element_stash_path(forest_path))?;
 		ItemStash::open(element_stash_path(forest_path))?.append([[0u32, 0u32]])?;
+		U32KeyStore::create(key_store_path(forest_path))?;
 		Ok(())
 	}
 	pub fn open(forest_path: impl AsRef<Path>) -> io::Result<Self> {
 		let element_stash = ItemStash::open(element_stash_path(forest_path.as_ref()))?;
 		let element_read = Rc::new(element_stash.to_element_read()?);
-		let forest = Self { element_stash, element_read };
+		let key_store = U32KeyStore::open(key_store_path(forest_path))?;
+		let forest = Self { element_stash, element_read, key_store };
 		Ok(forest)
 	}
 	pub fn open_or_create(path: impl AsRef<Path>) -> io::Result<Self> {
@@ -45,12 +49,9 @@ impl KvForest {
 		}
 		Self::open(path)
 	}
-}
-
-impl KvForest {
 	pub fn push(&mut self, root_index: RootIndex, key: u32, value: u32) -> io::Result<RootIndex> {
 		let trie = self.trie(root_index)?;
-		let new_trie = trie.push(key, value);
+		let new_trie = trie.push(key, value, &mut self.key_store);
 		let new_root_index = self.save(new_trie)?;
 		Ok(RootIndex(new_root_index))
 	}
@@ -119,4 +120,8 @@ impl KvForest {
 
 fn element_stash_path(forest_path: impl AsRef<Path>) -> PathBuf {
 	forest_path.as_ref().join("elements.stash")
+}
+
+fn key_store_path(forest_path: impl AsRef<Path>) -> PathBuf {
+	forest_path.as_ref().join("keys.stash")
 }
