@@ -17,17 +17,17 @@ pub struct ElementRead {
 }
 
 impl ElementRead {
-	pub fn read(&self, index: ElementStoreIndex) -> io::Result<[u8; 8]> {
-		let file_index = index.to_file_position();
-		let mut bytes = [0u8; ELEMENT_BYTES];
-		self.file.read_exact_at(&mut bytes, file_index)?;
-		Ok(bytes)
-	}
 	pub fn open(store_path: impl AsRef<Path>) -> io::Result<Self> {
 		let store_path = store_path.as_ref();
 		let file = OpenOptions::new().read(true).open(store_path)?;
 		let element_read = Self { file, store_path: store_path.to_path_buf() };
 		Ok(element_read)
+	}
+	pub fn read(&self, index: ElementStoreIndex) -> io::Result<[u8; 8]> {
+		let file_index = index.to_file_position();
+		let mut bytes = [0u8; ELEMENT_BYTES];
+		self.file.read_exact_at(&mut bytes, file_index)?;
+		Ok(bytes)
 	}
 }
 

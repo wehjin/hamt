@@ -26,6 +26,28 @@ pub struct KvForest {
 }
 
 impl KvForest {
+	pub fn create(path: impl AsRef<Path>) -> io::Result<()> {
+		let forest_path = path.as_ref();
+		fs::create_dir_all(forest_path)?;
+		ItemStash::create(element_stash_path(forest_path))?;
+		ItemStash::open(element_stash_path(forest_path))?.append([[0u32, 0u32]])?;
+		Ok(())
+	}
+	pub fn open(forest_path: impl AsRef<Path>) -> io::Result<Self> {
+		let element_stash = ItemStash::open(element_stash_path(forest_path.as_ref()))?;
+		let element_read = Rc::new(element_stash.to_element_read()?);
+		let forest = Self { element_stash, element_read };
+		Ok(forest)
+	}
+	pub fn open_or_create(path: impl AsRef<Path>) -> io::Result<Self> {
+		if !path.as_ref().exists() {
+			Self::create(&path)?;
+		}
+		Self::open(path)
+	}
+}
+
+impl KvForest {
 	pub fn push(&mut self, root_index: RootIndex, key: u32, value: u32) -> io::Result<RootIndex> {
 		let trie = self.trie(root_index)?;
 		let new_trie = trie.push(key, value);
@@ -92,26 +114,6 @@ impl KvForest {
 		let root_bytes = self.element_read.read(root_index.0)?;
 		let trie = Trie::parse(&root_bytes, self.element_read.clone()).expect("trie root");
 		Ok(trie)
-	}
-	pub fn open_or_create(path: impl AsRef<Path>) -> io::Result<Self> {
-		if !path.as_ref().exists() {
-			Self::create(&path)?;
-		}
-		Self::open(path)
-	}
-	pub fn open(forest_path: impl AsRef<Path>) -> io::Result<Self> {
-		let element_stash = ItemStash::open(element_stash_path(forest_path.as_ref()))?;
-		let element_read = Rc::new(element_stash.to_element_read()?);
-		let forest = Self { element_stash, element_read };
-		Ok(forest)
-	}
-
-	pub fn create(path: impl AsRef<Path>) -> io::Result<()> {
-		let forest_path = path.as_ref();
-		fs::create_dir_all(forest_path)?;
-		ItemStash::create(element_stash_path(forest_path))?;
-		ItemStash::open(element_stash_path(forest_path))?.append([[0u32, 0u32]])?;
-		Ok(())
 	}
 }
 
