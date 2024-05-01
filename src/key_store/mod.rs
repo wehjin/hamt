@@ -27,20 +27,31 @@ impl Key for u32 {
 	}
 }
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub struct KeyIndex(u32);
+
+impl KeyIndex {
+	pub fn to_u32(&self) -> u32 { self.0 }
+}
+
+impl From<u32> for KeyIndex {
+	fn from(value: u32) -> Self { Self(value) }
+}
+
 pub trait KeyStore<K: Key> {
-	fn write_key(&mut self, key: &K) -> io::Result<u32>;
-	fn to_read_key(&self) -> impl ReadKey<u32>;
+	fn write_key(&mut self, key: &K) -> io::Result<KeyIndex>;
+	fn to_read_key(&self) -> impl ReadKey<K>;
 }
 
 pub trait ReadKey<K: Key> {
-	fn read_key(&self, pos: u32) -> io::Result<K>;
+	fn read_key(&self, index: KeyIndex) -> io::Result<K>;
 }
 
 pub struct U32KeyStore;
 
 impl KeyStore<u32> for U32KeyStore {
-	fn write_key(&mut self, key: &u32) -> io::Result<u32> {
-		Ok(*key)
+	fn write_key(&mut self, key: &u32) -> io::Result<KeyIndex> {
+		Ok(KeyIndex::from(*key))
 	}
 	fn to_read_key(&self) -> impl ReadKey<u32> { U32KeyRead }
 }
@@ -48,7 +59,7 @@ impl KeyStore<u32> for U32KeyStore {
 pub struct U32KeyRead;
 
 impl ReadKey<u32> for U32KeyRead {
-	fn read_key(&self, pos: u32) -> io::Result<u32> {
-		Ok(pos)
+	fn read_key(&self, index: KeyIndex) -> io::Result<u32> {
+		Ok(index.to_u32())
 	}
 }
