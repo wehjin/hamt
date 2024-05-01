@@ -49,6 +49,10 @@ impl KvForest {
 		}
 		Self::open(path)
 	}
+	pub fn find(&self, root_index: RootIndex, search_key: &u32) -> Option<u32> {
+		let trie = self.trie(root_index).expect("find trie at index");
+		trie.find(search_key, &self.key_store).cloned()
+	}
 	pub fn push(&mut self, root_index: RootIndex, key: u32, value: u32) -> io::Result<RootIndex> {
 		let trie = self.trie(root_index)?;
 		let new_trie = trie.push(key, value, &mut self.key_store);
@@ -111,7 +115,7 @@ impl KvForest {
 		let index = RootIndex(ElementStoreIndex(0));
 		Ok(index)
 	}
-	pub fn trie(&self, root_index: RootIndex) -> io::Result<Trie> {
+	fn trie(&self, root_index: RootIndex) -> io::Result<Trie> {
 		let root_bytes = self.element_read.read(root_index.0)?;
 		let trie = Trie::parse(&root_bytes, self.element_read.clone()).expect("trie root");
 		Ok(trie)

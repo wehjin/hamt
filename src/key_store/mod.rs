@@ -10,11 +10,10 @@ mod tests {
 	#[test]
 	fn basic() {
 		let store = &mut U32KeyStore;
-		let key = 137u32;
-		let pos = store.write_key(&key).expect("write_key");
-		let reader = store.to_read_key();
-		let read_key = reader.read(pos).expect("read_key");
-		assert_eq!(key, read_key);
+		let write_key = 137u32;
+		let key_store_index = store.write_key(&write_key).expect("write_key");
+		let read_key = store.read_key(key_store_index).expect("read_key");
+		assert_eq!(write_key, read_key);
 	}
 }
 
@@ -67,33 +66,31 @@ impl From<u32> for KeyStoreIndex {
 	fn from(value: u32) -> Self { Self(value) }
 }
 
-pub trait KeyStore<K: Key> {
+pub trait KeyStore<K: Key>: ReadKey<K> {
 	fn write_key(&mut self, key: &K) -> io::Result<KeyStoreIndex>;
-	fn to_read_key(&self) -> impl ReadKey<K>;
 }
 
 pub trait ReadKey<K: Key> {
-	fn read(&self, index: KeyStoreIndex) -> io::Result<K>;
+	fn read_key(&self, index: KeyStoreIndex) -> io::Result<K>;
 }
 
 pub struct U32KeyStore;
 
 impl U32KeyStore {
 	pub fn create(_path: impl AsRef<Path>) -> io::Result<()> { Ok(()) }
-	pub fn open(_path: impl AsRef<Path>) -> io::Result<Self> { Ok(U32KeyStore) }
+	pub fn open(_path: impl AsRef<Path>) -> io::Result<Self> {
+		Ok(U32KeyStore)
+	}
+}
+
+impl ReadKey<u32> for U32KeyStore {
+	fn read_key(&self, index: KeyStoreIndex) -> io::Result<u32> {
+		Ok(index.to_u32())
+	}
 }
 
 impl KeyStore<u32> for U32KeyStore {
 	fn write_key(&mut self, key: &u32) -> io::Result<KeyStoreIndex> {
 		Ok(KeyStoreIndex::from(*key))
-	}
-	fn to_read_key(&self) -> impl ReadKey<u32> { U32KeyRead }
-}
-
-pub struct U32KeyRead;
-
-impl ReadKey<u32> for U32KeyRead {
-	fn read(&self, index: KeyStoreIndex) -> io::Result<u32> {
-		Ok(index.to_u32())
 	}
 }

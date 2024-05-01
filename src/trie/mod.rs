@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use crate::item_stash::element::ElementStoreIndex;
 use crate::item_stash::element_read::{ElementRead, SavedElementList};
-use crate::key_store::{KeyField, KeyStore, KeyStoreIndex, ReadKey, U32KeyRead, U32KeyStore};
+use crate::key_store::{KeyField, KeyStore, KeyStoreIndex, ReadKey};
 use crate::kv_store::array_data::ElementData;
 use crate::kv_store::array_map::ElementMap;
 
@@ -46,8 +46,7 @@ impl Trie {
 		let right = self.map.0;
 		[left, right]
 	}
-	pub fn find(&self, search_key: &u32) -> Option<&u32> {
-		let key_read = U32KeyRead;
+	pub fn find(&self, search_key: &u32, read_key: &impl ReadKey<u32>) -> Option<&u32> {
 		let mut depth = 0;
 		let mut active_trie = self;
 		loop {
@@ -60,7 +59,7 @@ impl Trie {
 					let element = active_trie.elements.try_get(viewing_index).expect("get element");
 					match element {
 						Element::KeyValue { key, value } => {
-							let saved_key = key_read.read(KeyStoreIndex::from(key)).expect("read key");
+							let saved_key = read_key.read_key(KeyStoreIndex::from(key)).expect("read key");
 							return (&saved_key == search_key).then_some(value);
 						}
 						Element::SubTrie(trie) => {
@@ -72,10 +71,8 @@ impl Trie {
 			}
 		}
 	}
-	pub fn push(&self, insert_key: u32, insert_value: u32, key_store: &mut U32KeyStore) -> Self {
+	pub fn push(&self, insert_key: u32, insert_value: u32, key_store: &mut impl KeyStore<u32>) -> Self {
 		let insert_key_index = key_store.write_key(&insert_key).expect("write key");
-		let read_key = key_store.to_read_key();
-
 		let mut back_trie: Trie;
 		let mut back_tasks = Vec::new();
 		{
@@ -94,7 +91,7 @@ impl Trie {
 						match active_trie.elements.try_get(viewing_index).expect("get element") {
 							Element::KeyValue { key: old_key_field, value: old_value } => {
 								let old_key_index = KeyStoreIndex::from(old_key_field);
-								let old_key = read_key.read(old_key_index).expect("read key");
+								let old_key = key_store.read_key(old_key_index).expect("read key");
 								if old_key == insert_key {
 									let replacement = Element::KeyValue { key: KeyField::from(insert_key_index), value: insert_value };
 									back_trie = active_trie.insert_or_replace_element(key_byte, replacement);

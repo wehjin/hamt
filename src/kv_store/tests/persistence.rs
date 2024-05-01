@@ -29,6 +29,6 @@ fn persist_thousand_internal_71() {
 	let trie = forest.trie(index).expect("trie at index");
 	assert_eq!(1000, trie.size());
 	for i in 0..1000 {
-		assert_eq!(Some(i + 1), trie.find(&(i * 71)).cloned());
+		assert_eq!(Some(i + 1), forest.find(index, &(i * 71)));
 	}
 }
