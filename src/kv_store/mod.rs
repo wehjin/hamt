@@ -2,6 +2,7 @@ use std::{fs, io};
 use std::cell::OnceCell;
 use std::collections::HashMap;
 use std::fmt::Debug;
+use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
@@ -30,7 +31,10 @@ pub struct KvForest {
 impl KvForest {
 	pub fn create(path: impl AsRef<Path>) -> io::Result<()> {
 		let forest_path = path.as_ref();
-		fs::create_dir_all(forest_path)?;
+		if forest_path.exists() {
+			return Err(io::Error::from(ErrorKind::AlreadyExists));
+		}
+		fs::create_dir(forest_path)?;
 		ItemStash::create(element_stash_path(forest_path))?;
 		ItemStash::open(element_stash_path(forest_path))?.append([[0u32, 0u32]])?;
 		U32KeyStore::create(key_store_path(forest_path))?;
