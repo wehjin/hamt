@@ -6,6 +6,7 @@ use std::rc::Rc;
 
 use crate::item_stash::element::ElementStoreIndex;
 use crate::item_stash::element_read::{ElementRead, SavedElementList};
+use crate::key_store::{KeyField, KeyStore, KeyStoreIndex, ReadKey, U32KeyRead, U32KeyStore};
 use crate::kv_store::array_data::ElementData;
 use crate::kv_store::array_map::ElementMap;
 
@@ -46,6 +47,7 @@ impl Trie {
 		[left, right]
 	}
 	pub fn find(&self, search_key: &u32) -> Option<&u32> {
+		let key_read = U32KeyRead;
 		let mut depth = 0;
 		let mut active_trie = self;
 		loop {
@@ -58,7 +60,8 @@ impl Trie {
 					let element = active_trie.elements.try_get(viewing_index).expect("get element");
 					match element {
 						Element::KeyValue { key, value } => {
-							return (key == search_key).then_some(value);
+							let saved_key = key_read.read(KeyStoreIndex::from(key)).expect("read key");
+							return (&saved_key == search_key).then_some(value);
 						}
 						Element::SubTrie(trie) => {
 							active_trie = trie;
@@ -70,6 +73,10 @@ impl Trie {
 		}
 	}
 	pub fn push(&self, insert_key: u32, insert_value: u32) -> Self {
+		let mut key_store = U32KeyStore;
+		let insert_key_index = key_store.write_key(&insert_key).expect("write key");
+		let read_key = key_store.to_read_key();
+
 		let mut back_trie: Trie;
 		let mut back_tasks = Vec::new();
 		{
@@ -80,23 +87,25 @@ impl Trie {
 				let viewing_index = active_trie.map.to_viewing_index(key_byte);
 				match viewing_index {
 					None => {
-						let element = Element::KeyValue { key: insert_key.clone(), value: insert_value.clone() };
+						let element = Element::KeyValue { key: KeyField::from(insert_key_index), value: insert_value.clone() };
 						back_trie = active_trie.insert_or_replace_element(key_byte, element);
 						break;
 					}
 					Some(viewing_index) => {
 						match active_trie.elements.try_get(viewing_index).expect("get element") {
-							Element::KeyValue { key: old_key, value: old_value } => {
-								if old_key == &insert_key {
-									let replacement = Element::KeyValue { key: insert_key.clone(), value: insert_value };
+							Element::KeyValue { key: old_key_field, value: old_value } => {
+								let old_key_index = KeyStoreIndex::from(old_key_field);
+								let old_key = read_key.read(old_key_index).expect("read key");
+								if old_key == insert_key {
+									let replacement = Element::KeyValue { key: KeyField::from(insert_key_index), value: insert_value };
 									back_trie = active_trie.insert_or_replace_element(key_byte, replacement);
 									break;
 								} else {
 									let replacement = {
 										let zipped_trie = Trie::zip_values(
 											active_depth + 1,
-											(old_key, old_value),
-											(insert_key, insert_value),
+											(&old_key, &old_key_index, old_value),
+											(insert_key, insert_key_index, insert_value),
 										);
 										Element::SubTrie(zipped_trie)
 									};
@@ -121,7 +130,11 @@ impl Trie {
 		back_trie
 	}
 
-	fn zip_values(start_depth: usize, (key1, value1): (&u32, &u32), (key2, value2): (u32, u32)) -> Self {
+	fn zip_values(
+		start_depth: usize,
+		(key1, key1_index, value1): (&u32, &KeyStoreIndex, &u32),
+		(key2, key2_index, value2): (u32, KeyStoreIndex, u32),
+	) -> Self {
 		let mut depth = start_depth;
 		let mut back_trie: Self;
 		let mut back_tasks = Vec::new();
@@ -130,8 +143,14 @@ impl Trie {
 			if key1_byte != key2_byte {
 				let map = ElementMap::just_key(key1_byte).include_key(key2_byte);
 				let elements = {
-					let key1_element = Element::KeyValue { key: key1.clone(), value: value1.clone() };
-					let key2_element = Element::KeyValue { key: key2, value: value2 };
+					let key1_element = Element::KeyValue {
+						key: KeyField::from(*key1_index),
+						value: value1.clone(),
+					};
+					let key2_element = Element::KeyValue {
+						key: KeyField::from(key2_index),
+						value: value2,
+					};
 					let element_list = if key1_byte < key2_byte {
 						DirectElementList::empty().insert(0, key1_element).insert(1, key2_element)
 					} else {
@@ -246,7 +265,7 @@ impl Index<usize> for DirectElementList {
 
 #[derive(Debug, Clone, Hash)]
 pub enum Element {
-	KeyValue { key: u32, value: u32 },
+	KeyValue { key: KeyField, value: u32 },
 	SubTrie(Trie),
 }
 
@@ -291,12 +310,12 @@ pub fn u32_from_stash_index(stash_index: u32) -> u32 {
 	stash_index
 }
 
-pub fn u32_from_key(key: u32) -> u32 {
+pub fn key_field_from_store_index(key: u32) -> u32 {
 	assert_eq!(0, key & 0x80000000);
 	key | 0x80000000
 }
 
-pub fn u32_to_key(value: u32) -> u32 {
+pub fn key_field_to_store_index(value: u32) -> u32 {
 	value & 0x7fffffff
 }
 

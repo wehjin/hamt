@@ -8,7 +8,8 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 use crate::item_stash::element::{ELEMENT_BYTES, ElementStoreIndex};
-use crate::trie::{Element, ElementList, Trie, u32_from_bytes, u32_to_key};
+use crate::key_store::KeyField;
+use crate::trie::{Element, ElementList, Trie, u32_from_bytes};
 
 #[derive(Debug)]
 pub struct ElementRead {
@@ -89,10 +90,12 @@ impl ElementSlab {
 				let bytes = element_read.read(ElementStoreIndex(i))?;
 				let element = match Trie::parse(&bytes, element_read.clone()) {
 					Some(trie) => Element::SubTrie(trie),
-					None => Element::KeyValue {
-						key: u32_to_key(u32_from_bytes(&bytes[0..4])),
-						value: u32_from_bytes(&bytes[4..8]),
-					},
+					None => {
+						Element::KeyValue {
+							key: KeyField::from(&bytes[0..4]),
+							value: u32_from_bytes(&bytes[4..8]),
+						}
+					}
 				};
 				elements.push(element);
 			}

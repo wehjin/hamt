@@ -9,7 +9,7 @@ use crate::item_stash::element::ElementStoreIndex;
 use crate::item_stash::element_read::{ElementRead, SavedElementList};
 use crate::item_stash::stash::ItemStash;
 use crate::kv_store::array_data::ElementData;
-use crate::trie::{Element, Trie, u32_from_key, u32_from_stash_index};
+use crate::trie::{Element, Trie, u32_from_stash_index};
 
 #[cfg(test)]
 mod tests;
@@ -81,7 +81,7 @@ impl KvForest {
 			for element_index in 0..trie.elements.len() {
 				let element = trie.elements.try_get(element_index)?;
 				to_save.push(match element {
-					Element::KeyValue { key, value } => [u32_from_key(*key), *value],
+					Element::KeyValue { key, value } => [key.to_u32(), *value],
 					Element::SubTrie(child_trie) => {
 						let stash_index = match child_trie.elements.to_stash_index() {
 							None => stash_indices[&child_trie.to_uid()].0,

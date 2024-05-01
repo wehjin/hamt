@@ -1,6 +1,6 @@
 use std::io;
 
-use crate::trie::u32_key_byte;
+use crate::trie::{key_field_from_store_index, key_field_to_store_index, u32_from_bytes, u32_is_stash_index, u32_key_byte};
 
 #[cfg(test)]
 mod tests {
@@ -12,7 +12,7 @@ mod tests {
 		let key = 137u32;
 		let pos = store.write_key(&key).expect("write_key");
 		let reader = store.to_read_key();
-		let read_key = reader.read_key(pos).expect("read_key");
+		let read_key = reader.read(pos).expect("read_key");
 		assert_eq!(key, read_key);
 	}
 }
@@ -28,30 +28,58 @@ impl Key for u32 {
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub struct KeyIndex(u32);
+pub struct KeyField(u32);
 
-impl KeyIndex {
+impl KeyField {
 	pub fn to_u32(&self) -> u32 { self.0 }
 }
 
-impl From<u32> for KeyIndex {
+impl From<KeyStoreIndex> for KeyField {
+	fn from(value: KeyStoreIndex) -> Self {
+		Self(key_field_from_store_index(value.0))
+	}
+}
+
+impl From<&[u8]> for KeyField {
+	fn from(bytes: &[u8]) -> Self {
+		let u32 = u32_from_bytes(bytes);
+		debug_assert!(!u32_is_stash_index(u32));
+		Self(u32)
+	}
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub struct KeyStoreIndex(u32);
+
+impl KeyStoreIndex {
+	pub fn to_u32(&self) -> u32 { self.0 }
+}
+
+impl From<&KeyField> for KeyStoreIndex {
+	fn from(value: &KeyField) -> Self {
+		let value = key_field_to_store_index(value.0);
+		Self(value)
+	}
+}
+
+impl From<u32> for KeyStoreIndex {
 	fn from(value: u32) -> Self { Self(value) }
 }
 
 pub trait KeyStore<K: Key> {
-	fn write_key(&mut self, key: &K) -> io::Result<KeyIndex>;
+	fn write_key(&mut self, key: &K) -> io::Result<KeyStoreIndex>;
 	fn to_read_key(&self) -> impl ReadKey<K>;
 }
 
 pub trait ReadKey<K: Key> {
-	fn read_key(&self, index: KeyIndex) -> io::Result<K>;
+	fn read(&self, index: KeyStoreIndex) -> io::Result<K>;
 }
 
 pub struct U32KeyStore;
 
 impl KeyStore<u32> for U32KeyStore {
-	fn write_key(&mut self, key: &u32) -> io::Result<KeyIndex> {
-		Ok(KeyIndex::from(*key))
+	fn write_key(&mut self, key: &u32) -> io::Result<KeyStoreIndex> {
+		Ok(KeyStoreIndex::from(*key))
 	}
 	fn to_read_key(&self) -> impl ReadKey<u32> { U32KeyRead }
 }
@@ -59,7 +87,7 @@ impl KeyStore<u32> for U32KeyStore {
 pub struct U32KeyRead;
 
 impl ReadKey<u32> for U32KeyRead {
-	fn read_key(&self, index: KeyIndex) -> io::Result<u32> {
+	fn read(&self, index: KeyStoreIndex) -> io::Result<u32> {
 		Ok(index.to_u32())
 	}
 }
