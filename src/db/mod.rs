@@ -18,7 +18,7 @@ impl Db {
 	}
 	pub fn open(db_dir: impl AsRef<Path>) -> io::Result<Self> {
 		let path = db_dir.as_ref().to_path_buf();
-		if !path.exists() || !path.is_dir() {
+		if !path.is_dir() {
 			return Err(io::Error::from(io::ErrorKind::NotFound));
 		}
 		Ok(Self { path })
@@ -35,10 +35,7 @@ mod tests {
 	#[test]
 	fn basic() {
 		let db_dir = dbg!(tests::ready_test_dir("db-basic").join("db"));
-		Db::create(
-			&db_dir,
-			&[Attribute("lot", "size")],
-		).unwrap();
+		Db::create(&db_dir, &[Attribute("lot", "size")]).unwrap();
 		let db = Db::open(&db_dir).expect("Open succeeds");
 		assert_eq!(&db_dir, db.path());
 	}
