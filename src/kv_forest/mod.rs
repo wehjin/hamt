@@ -9,8 +9,8 @@ use std::rc::Rc;
 use crate::item_stash::element::ElementStoreIndex;
 use crate::item_stash::element_read::{ElementRead, SavedElementList};
 use crate::item_stash::stash::ItemStash;
-use crate::key_store::U32KeyStore;
-use crate::kv_store::array_data::ElementData;
+use crate::key_store::{Key, KeyStore, KeyStoreIndex, ReadKey, U32KeyStore};
+use crate::kv_forest::array_data::ElementData;
 use crate::trie::{Element, Trie, u32_from_stash_index};
 
 #[cfg(test)]
@@ -22,13 +22,39 @@ pub mod array_data;
 #[must_use]
 pub struct RootIndex(ElementStoreIndex);
 
-pub struct KvForest {
-	element_stash: ItemStash,
-	element_read: Rc<ElementRead>,
-	key_store: U32KeyStore,
+struct SizedKeyStore<K: Key>(Box<dyn KeyStore<K>>);
+
+impl<K: Key> ReadKey<K> for SizedKeyStore<K> {
+	fn read_key(&self, index: KeyStoreIndex) -> io::Result<K> { self.0.read_key(index) }
 }
 
-impl KvForest {
+impl<K: Key> KeyStore<K> for SizedKeyStore<K> {
+	fn write_key(&mut self, key: &K) -> io::Result<KeyStoreIndex> { self.0.write_key(key) }
+}
+
+pub struct KvForest<K: Key> {
+	element_stash: ItemStash,
+	element_read: Rc<ElementRead>,
+	key_store: SizedKeyStore<K>,
+}
+
+impl KvForest<u32> {
+	pub fn open_or_create(forest_path: impl AsRef<Path>) -> io::Result<Self> {
+		let forest = Self::open_or_create_with_keys_store_builder(
+			forest_path,
+			|path| {
+				U32KeyStore::open(path)
+					.map(|ks| {
+						let boxed_key_store = Box::new(ks);
+						SizedKeyStore(boxed_key_store as Box<dyn KeyStore<u32>>)
+					})
+			},
+		)?;
+		Ok(forest)
+	}
+}
+
+impl<K: Key> KvForest<K> {
 	pub fn create(path: impl AsRef<Path>) -> io::Result<()> {
 		let forest_path = path.as_ref();
 		if forest_path.exists() {
@@ -40,30 +66,31 @@ impl KvForest {
 		U32KeyStore::create(key_store_path(forest_path))?;
 		Ok(())
 	}
-	pub fn open(forest_path: impl AsRef<Path>) -> io::Result<Self> {
-		let element_stash = ItemStash::open(element_stash_path(forest_path.as_ref()))?;
-		let element_read = Rc::new(element_stash.to_element_read()?);
-		let key_store = U32KeyStore::open(key_store_path(forest_path))?;
-		let forest = Self { element_stash, element_read, key_store };
-		Ok(forest)
-	}
-	pub fn open_or_create(path: impl AsRef<Path>) -> io::Result<Self> {
-		if !path.as_ref().exists() {
-			Self::create(&path)?;
+	fn open_or_create_with_keys_store_builder(forest_path: impl AsRef<Path>, build_keys_store: impl Fn(&Path) -> io::Result<SizedKeyStore<K>>) -> io::Result<Self> {
+		if !forest_path.as_ref().exists() {
+			Self::create(&forest_path)?;
 		}
-		Self::open(path)
+		let (element_stash, element_read) = {
+			let path = element_stash_path(forest_path.as_ref());
+			let stash = ItemStash::open(path)?;
+			let read = stash.to_element_read()?;
+			(stash, read)
+		};
+		let key_store = build_keys_store(key_store_path(forest_path).as_path())?;
+		let forest = Self { element_stash, element_read: Rc::new(element_read), key_store };
+		Ok(forest)
 	}
 	pub fn add_root(&mut self) -> io::Result<RootIndex> {
 		let index = RootIndex(ElementStoreIndex(0));
 		Ok(index)
 	}
-	pub fn find(&self, root_index: RootIndex, search_key: &u32) -> Option<u32> {
+	pub fn find(&self, root_index: RootIndex, search_key: &K) -> Option<u32> {
 		let trie = self.trie(root_index).expect("find trie at index");
 		trie.find(search_key, &self.key_store).cloned()
 	}
-	pub fn push(&mut self, root_index: RootIndex, key: u32, value: u32) -> io::Result<RootIndex> {
+	pub fn push(&mut self, root_index: RootIndex, insert_key: K, value: u32) -> io::Result<RootIndex> {
 		let trie = self.trie(root_index)?;
-		let new_trie = trie.push(key, value, &mut self.key_store);
+		let new_trie = trie.push(insert_key, value, &mut self.key_store);
 		let new_root_index = self.save(new_trie)?;
 		Ok(RootIndex(new_root_index))
 	}

@@ -6,9 +6,9 @@ use std::rc::Rc;
 
 use crate::item_stash::element::ElementStoreIndex;
 use crate::item_stash::element_read::{ElementRead, SavedElementList};
-use crate::key_store::{KeyField, KeyStore, KeyStoreIndex, ReadKey};
-use crate::kv_store::array_data::ElementData;
-use crate::kv_store::array_map::ElementMap;
+use crate::key_store::{Key, KeyField, KeyStore, KeyStoreIndex, ReadKey};
+use crate::kv_forest::array_data::ElementData;
+use crate::kv_forest::array_map::ElementMap;
 
 #[derive(Debug, Clone, Hash)]
 #[must_use]
@@ -46,11 +46,11 @@ impl Trie {
 		let right = self.map.0;
 		[left, right]
 	}
-	pub fn find(&self, search_key: &u32, read_key: &impl ReadKey<u32>) -> Option<&u32> {
+	pub fn find<K: Key>(&self, search_key: &K, read_key: &impl ReadKey<K>) -> Option<&u32> {
 		let mut depth = 0;
 		let mut active_trie = self;
 		loop {
-			let key_byte = u32_key_byte(search_key, depth);
+			let key_byte = search_key.to_shard(depth);
 			match active_trie.map.to_viewing_index(key_byte) {
 				None => {
 					return None;
@@ -71,7 +71,7 @@ impl Trie {
 			}
 		}
 	}
-	pub fn push(&self, insert_key: u32, insert_value: u32, key_store: &mut impl KeyStore<u32>) -> Self {
+	pub fn push<K: Key>(&self, insert_key: K, insert_value: u32, key_store: &mut impl KeyStore<K>) -> Self {
 		let insert_key_index = key_store.write_key(&insert_key).expect("write key");
 		let mut back_trie: Trie;
 		let mut back_tasks = Vec::new();
@@ -79,7 +79,7 @@ impl Trie {
 			let mut active_depth = 0;
 			let mut active_trie = self;
 			loop {
-				let key_byte = u32_key_byte(&insert_key, active_depth);
+				let key_byte = insert_key.to_shard(active_depth);
 				let viewing_index = active_trie.map.to_viewing_index(key_byte);
 				match viewing_index {
 					None => {
@@ -126,16 +126,16 @@ impl Trie {
 		back_trie
 	}
 
-	fn zip_values(
+	fn zip_values<K: Key>(
 		start_depth: usize,
-		(key1, key1_index, value1): (&u32, &KeyStoreIndex, &u32),
-		(key2, key2_index, value2): (u32, KeyStoreIndex, u32),
+		(key1, key1_index, value1): (&K, &KeyStoreIndex, &u32),
+		(key2, key2_index, value2): (K, KeyStoreIndex, u32),
 	) -> Self {
 		let mut depth = start_depth;
 		let mut back_trie: Self;
 		let mut back_tasks = Vec::new();
 		loop {
-			let (key1_byte, key2_byte) = (u32_key_byte(key1, depth), u32_key_byte(&key2, depth));
+			let (key1_byte, key2_byte) = (key1.to_shard(depth), key2.to_shard(depth));
 			if key1_byte != key2_byte {
 				let map = ElementMap::just_key(key1_byte).include_key(key2_byte);
 				let elements = {

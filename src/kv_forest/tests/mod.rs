@@ -7,14 +7,13 @@ mod insertion;
 mod persistence;
 
 mod basic {
-	use crate::kv_store::KvForest;
-	use crate::kv_store::tests::prepare_kv_store_test_dir;
+	use crate::kv_forest::KvForest;
+	use crate::kv_forest::tests::prepare_kv_store_test_dir;
 
 	#[test]
 	fn basic() {
 		let test_dir = prepare_kv_store_test_dir("basic");
-		KvForest::create(&test_dir).expect("create kv-store");
-		KvForest::open(&test_dir).expect("open");
+		KvForest::<u32>::open_or_create(&test_dir).expect("open");
 	}
 }
 

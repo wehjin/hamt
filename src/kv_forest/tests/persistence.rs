@@ -1,5 +1,5 @@
-use crate::kv_store::KvForest;
-use crate::kv_store::tests::prepare_kv_store_test_dir;
+use crate::kv_forest::KvForest;
+use crate::kv_forest::tests::prepare_kv_store_test_dir;
 
 #[test]
 fn persist_empty() {
