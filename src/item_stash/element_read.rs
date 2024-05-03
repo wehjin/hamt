@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 use crate::item_stash::element::{ELEMENT_BYTES, ElementStoreIndex};
-use crate::key_store::KeyField;
+use crate::key_store::field::KeyField;
 use crate::trie::{Element, ElementList, Trie, u32_from_bytes};
 
 #[derive(Debug)]

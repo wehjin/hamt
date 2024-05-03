@@ -6,7 +6,9 @@ use std::rc::Rc;
 
 use crate::item_stash::element::ElementStoreIndex;
 use crate::item_stash::element_read::{ElementRead, SavedElementList};
-use crate::key_store::{Key, KeyField, KeyStore, KeyStoreIndex, ReadKey};
+use crate::key_store::{Key, KeyStore, ReadKey};
+use crate::key_store::field::KeyField;
+use crate::key_store::index::KeyStoreIndex;
 use crate::kv_forest::array_data::ElementData;
 use crate::kv_forest::array_map::ElementMap;
 

@@ -9,7 +9,9 @@ use std::rc::Rc;
 use crate::item_stash::element::ElementStoreIndex;
 use crate::item_stash::element_read::{ElementRead, SavedElementList};
 use crate::item_stash::stash::ItemStash;
-use crate::key_store::{Key, KeyStore, KeyStoreIndex, ReadKey, U32KeyStore};
+use crate::key_store::{Key, KeyStore, ReadKey};
+use crate::key_store::index::KeyStoreIndex;
+use crate::key_store::u32::U32KeyStore;
 use crate::kv_forest::array_data::ElementData;
 use crate::trie::{Element, Trie, u32_from_stash_index};
 
