@@ -6,7 +6,8 @@ use crate::trie::key_field_to_store_index;
 pub struct KeyStoreIndex(pub(crate) u32);
 
 impl KeyStoreIndex {
-	pub fn to_u32(&self) -> u32 { self.0 }
+	pub fn to_u32(&self) -> u32 { self.to_file_pos() as u32 }
+	pub fn to_file_pos(&self) -> u64 { self.0 as u64 }
 }
 
 impl From<&KeyField> for KeyStoreIndex {
