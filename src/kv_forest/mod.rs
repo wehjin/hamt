@@ -25,6 +25,14 @@ pub mod array_data;
 #[must_use]
 pub struct RootIndex(ElementStoreIndex);
 
+impl RootIndex {
+	pub(crate) fn to_u32(&self) -> u32 { self.0.0 }
+}
+
+impl From<u32> for RootIndex {
+	fn from(value: u32) -> Self { RootIndex(ElementStoreIndex(value)) }
+}
+
 struct SizedKeyStore<K: Key>(Box<dyn KeyStore<K>>);
 
 impl<K: Key> ReadKey<K> for SizedKeyStore<K> {
