@@ -4,7 +4,7 @@ use crate::item_stash::tests::tools::named_test_dir;
 
 #[test]
 fn basic() {
-	let test_dir = named_test_dir("basic");
+	let test_dir = named_test_dir("item-stash-basic");
 	ItemStash::create(&test_dir).expect("create item-stash");
 	{
 		let mut stash = ItemStash::open(&test_dir).expect("open item-stash");

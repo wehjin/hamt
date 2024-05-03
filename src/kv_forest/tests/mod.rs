@@ -1,5 +1,6 @@
-use std::env;
 use std::path::PathBuf;
+
+use crate::tests::ready_test_dir;
 
 use super::*;
 
@@ -13,14 +14,11 @@ mod basic {
 	#[test]
 	fn basic() {
 		let test_dir = prepare_kv_store_test_dir("basic");
-		KvForest::<u32>::open_or_create(&test_dir).expect("open");
+		let forest_dir = test_dir.join("forest_dir");
+		KvForest::<u32>::open_or_create(&forest_dir).expect("open");
 	}
 }
 
 fn prepare_kv_store_test_dir(name: &str) -> PathBuf {
-	let test_dir = env::temp_dir().join("kv_store").join(name);
-	if test_dir.exists() && test_dir.is_dir() {
-		fs::remove_dir_all(&test_dir).expect("remove test dir");
-	}
-	test_dir
+	ready_test_dir(&format!("kv_store-{}", name))
 }

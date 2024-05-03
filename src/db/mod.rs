@@ -34,7 +34,7 @@ mod tests {
 
 	#[test]
 	fn basic() {
-		let db_dir = dbg!(tests::ready_test_dir("db-basic").join("db"));
+		let db_dir = tests::ready_test_dir("db-basic").join("db");
 		Db::create(&db_dir, &[Attribute("lot", "size")]).unwrap();
 		let db = Db::open(&db_dir).expect("Open succeeds");
 		assert_eq!(&db_dir, db.path());
