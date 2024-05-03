@@ -11,6 +11,7 @@ use crate::item_stash::element_read::{ElementRead, SavedElementList};
 use crate::item_stash::stash::ItemStash;
 use crate::key_store::{Key, KeyStore, ReadKey};
 use crate::key_store::index::KeyStoreIndex;
+use crate::key_store::string::StringKeyStore;
 use crate::key_store::u32::U32KeyStore;
 use crate::kv_forest::array_data::ElementData;
 use crate::trie::{Element, Trie, u32_from_stash_index};
@@ -41,16 +42,20 @@ pub struct KvForest<K: Key> {
 }
 
 impl KvForest<u32> {
-	pub fn open_or_create(forest_path: impl AsRef<Path>) -> io::Result<Self> {
+	pub fn open(forest_path: impl AsRef<Path>) -> io::Result<Self> {
 		let forest = Self::open_or_create_with_keys_store_builder(
 			forest_path,
-			|path| {
-				U32KeyStore::open(path)
-					.map(|ks| {
-						let boxed_key_store = Box::new(ks);
-						SizedKeyStore(boxed_key_store as Box<dyn KeyStore<u32>>)
-					})
-			},
+			|path| U32KeyStore::open(path).map(|ks| SizedKeyStore(Box::new(ks) as Box<dyn KeyStore<u32>>)),
+		)?;
+		Ok(forest)
+	}
+}
+
+impl KvForest<String> {
+	pub fn open(forest_path: impl AsRef<Path>) -> io::Result<Self> {
+		let forest = Self::open_or_create_with_keys_store_builder(
+			forest_path,
+			|path| StringKeyStore::open(path).map(|ks| SizedKeyStore(Box::new(ks) as Box<dyn KeyStore<String>>)),
 		)?;
 		Ok(forest)
 	}

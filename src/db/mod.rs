@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use attribute::Attribute;
 
 pub mod attribute;
+pub mod eavt;
 
 pub struct Db {
 	path: PathBuf,

@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn insert_two_keys_with_same_prefix_and_depth_and_two_more_at_lower_depth_finds_all_four_values() {
 	let path = prepare_kv_store_test_dir("insert-a");
-	let mut forest = KvForest::open_or_create(path.join("forest")).expect("open or create");
+	let mut forest = KvForest::<u32>::open(path.join("forest")).expect("open or create");
 	let index = forest.add_root().expect("index");
 	let index = forest.push(index, 0b000000000100000, 1).expect("push");
 	let index = forest.push(index, 0b000000001000000, 2).expect("push");
@@ -21,7 +21,7 @@ fn insert_two_keys_with_same_prefix_and_depth_and_two_more_at_lower_depth_finds_
 #[test]
 fn insert_two_keys_with_same_prefix_and_depth_and_third_at_lower_depth_finds_all_three_values() {
 	let path = prepare_kv_store_test_dir("insert-b");
-	let mut forest = KvForest::open_or_create(path.join("forest")).expect("open or create");
+	let mut forest = KvForest::<u32>::open(path.join("forest")).expect("open or create");
 	let index = forest.add_root().expect("index");
 	let index = forest.push(index, 0b000000000100000, 1).expect("push");
 	let index = forest.push(index, 0b000000001000000, 2).expect("push");
@@ -37,7 +37,7 @@ fn insert_two_keys_with_same_prefix_and_depth_and_third_at_lower_depth_finds_all
 #[test]
 fn insert_three_keys_with_same_prefix_and_depth_finds_all_three_values() {
 	let path = prepare_kv_store_test_dir("insert-c");
-	let mut forest = KvForest::open_or_create(path.join("forest")).expect("open or create");
+	let mut forest = KvForest::<u32>::open(path.join("forest")).expect("open or create");
 	let index = forest.add_root().expect("index");
 	let index = forest.push(index, 0b000000000100000, 1).expect("push");
 	let index = forest.push(index, 0b000000001000000, 2).expect("push");
@@ -53,7 +53,7 @@ fn insert_three_keys_with_same_prefix_and_depth_finds_all_three_values() {
 #[test]
 fn insert_two_keys_with_same_prefix_and_depth_finds_both_values() {
 	let path = prepare_kv_store_test_dir("insert-");
-	let mut forest = KvForest::open_or_create(path.join("forest")).expect("open or create");
+	let mut forest = KvForest::<u32>::open(path.join("forest")).expect("open or create");
 	let index = forest.add_root().expect("index");
 	let index = forest.push(index, 0b000000000100000, 1).expect("push");
 	let index = forest.push(index, 0b000000001000000, 2).expect("push");
@@ -67,7 +67,7 @@ fn insert_two_keys_with_same_prefix_and_depth_finds_both_values() {
 #[test]
 fn insert_two_keys_on_different_paths_finds_both_values() {
 	let path = prepare_kv_store_test_dir("insert-e");
-	let mut forest = KvForest::open_or_create(path.join("forest")).expect("open or create");
+	let mut forest = KvForest::<u32>::open(path.join("forest")).expect("open or create");
 	let index = forest.add_root().expect("index");
 	let index = forest.push(index, 0b000000000100000, 1).expect("push");
 	let index = forest.push(index, 0b000010000100000, 33).expect("push");
@@ -81,7 +81,7 @@ fn insert_two_keys_on_different_paths_finds_both_values() {
 #[test]
 fn insert_same_key_finds_last_value() {
 	let path = prepare_kv_store_test_dir("insert-f");
-	let mut forest = KvForest::open_or_create(path.join("forest")).expect("open or create");
+	let mut forest = KvForest::<u32>::open(path.join("forest")).expect("open or create");
 	let index = forest.add_root().expect("index");
 	let index = forest.push(index, 0b000010000000000, 1).expect("push");
 	let index = forest.push(index, 0b000010000000000, 2).expect("push");
@@ -94,7 +94,7 @@ fn insert_same_key_finds_last_value() {
 #[test]
 fn insert_value_finds_value() {
 	let path = prepare_kv_store_test_dir("insert-g");
-	let mut forest = KvForest::open_or_create(path.join("forest")).expect("open or create");
+	let mut forest = KvForest::<u32>::open(path.join("forest")).expect("open or create");
 	let index = forest.add_root().expect("index");
 	let index = forest.push(index, 0b000010000000000, 1).expect("push");
 	let trie = forest.trie(index).expect("trie");
